@@ -65,20 +65,15 @@ export class AppService {
     return existsCoffee;
   }
 
-  createCoffee(coffee: Coffee): {message:string,cafe:Coffee}{
-    if (
-      coffee.id === undefined ||
-      coffee.tipo === undefined ||
-      coffee.nome === undefined
-    ) {
+  createCoffee(coffee: Coffee): { message: string; cafe: Coffee } {
+    if (!coffee.id || !coffee.tipo || !coffee.nome) {
       throw new BadRequestException(`ID, NOME e TIPO são obrigatórios`);
     }
 
     this.coffees.push(coffee);
     return {
-      message : "Café criado com sucesso",
-      cafe : coffee 
-    }
-      
+      message: 'Café criado com sucesso',
+      cafe: coffee,
+    };
   }
 }
