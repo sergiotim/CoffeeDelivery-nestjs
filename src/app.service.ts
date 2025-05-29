@@ -80,7 +80,7 @@ export class AppService {
     if (!coffee.id || !coffee.tipo || !coffee.nome) {
       throw new BadRequestException(`ID, NOME e TIPO são obrigatórios`);
     }
-    coffee.date = new Date()
+    coffee.date = new Date();
 
     this.coffees.push(coffee);
     return {
@@ -90,11 +90,23 @@ export class AppService {
   }
 
   findCoffeeByDate(start: string, end: string): Coffee[] {
-    const startDate = this.convertDate(start);
-    const endDate = this.convertDate(end);
+    const startDate : Date | undefined = start ? this.convertDate(start) : undefined;
+    const endDate : Date | undefined = end ? this.convertDate(end) : undefined;
 
-    return this.coffees.filter(
-      (coffee) => coffee.date >= startDate && coffee.date <= endDate,
-    );
+    return this.coffees.filter((coffee) => {
+      if (startDate && endDate) {
+        return coffee.date >= startDate && coffee.date <= endDate;
+      }
+
+      if (startDate) {
+        return coffee.date >= startDate;
+      }
+
+      if (endDate) {
+        return coffee.date <= endDate;
+      }
+
+      return false;
+    });
   }
 }
