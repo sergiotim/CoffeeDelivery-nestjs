@@ -13,3 +13,69 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Coffee {
+  id          Int          @id @default(autoincrement())
+  nome        String
+  tipo        String
+  preco       Float
+  descricao   String
+  tags        TagCoffee[]
+  itensPedido ItemPedido[]
+}
+
+model TagCoffee {
+  id       Int    @id @default(autoincrement())
+  nome     String
+  coffeeId Int
+  coffee   Coffee @relation(fields: [coffeeId], references: [id])
+
+  @@unique([nome, coffeeId])
+}
+
+model Pedido {
+  id         Int          @id @default(autoincrement())
+  idCliente  Int
+  dataPedido DateTime     @default(now())
+  total      Float
+  entrega    Entrega?
+  itens      ItemPedido[]
+
+  cliente Cliente @relation(fields: [idCliente], references: [id])
+}
+
+model ItemPedido {
+  id         Int   @id @default(autoincrement())
+  idCoffee   Int
+  idPedido   Int
+  quantidade Int
+  preco      Float
+
+  coffee Coffee @relation(fields: [idCoffee], references: [id])
+  pedido Pedido @relation(fields: [idPedido], references: [id])
+}
+
+model Cliente {
+  id       Int      @id @default(autoincrement())
+  nome     String
+  email    String   @unique
+  cpf      String   @unique
+  telefone String
+  pedidos  Pedido[]
+}
+
+model Entrega {
+  id           Int           @id @default(autoincrement())
+  endereco     String
+  status       StatusEntrega @default(PENDENTE)
+  dataPrevista DateTime
+  pedidoId     Int           @unique
+
+  pedido Pedido @relation(fields: [pedidoId], references: [id])
+}
+
+enum StatusEntrega {
+  PENDENTE
+  EM_TRANSITO
+  ENTREGUE
+}
