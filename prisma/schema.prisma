@@ -14,67 +14,58 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Client {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  cpf       String   @unique
+  telefone  String
+  pedidos   Order[]
+}
+
 model Coffee {
-  id          Int          @id @default(autoincrement())
-  nome        String
-  tipo        String
-  preco       Float
-  descricao   String
-  tags        TagCoffee[]
-  itensPedido ItemPedido[]
+  id           Int          @id @default(autoincrement())
+  nome         String
+  tipo         String
+  precoUnitario Float
+  descricao    String
+  tags         String[]     
+  itensPedido  ItemOrder[]
 }
 
-model TagCoffee {
-  id       Int    @id @default(autoincrement())
-  nome     String
-  coffeeId Int
-  coffee   Coffee @relation(fields: [coffeeId], references: [id])
-
-  @@unique([nome, coffeeId])
+model Order {
+  id            Int          @id @default(autoincrement())
+  clienteId     Int
+  cliente       Client      @relation(fields: [clienteId], references: [id])
+  dataPedido    DateTime     @default(now())
+  total         Float
+  entrega       Delivery?
+  itensPedido   ItemOrder[]
 }
 
-model Pedido {
-  id         Int          @id @default(autoincrement())
-  idCliente  Int
-  dataPedido DateTime     @default(now())
-  total      Float
-  entrega    Entrega?
-  itens      ItemPedido[]
+model ItemOrder {
+  id             Int       @id @default(autoincrement())
+  cafeId         Int
+  pedidoId       Int
+  quantidade     Int
+  precoUnitario  Float
 
-  cliente Cliente @relation(fields: [idCliente], references: [id])
+  cafe           Coffee      @relation(fields: [cafeId], references: [id])
+  pedido         Order    @relation(fields: [pedidoId], references: [id])
+
+  @@unique([cafeId, pedidoId])
 }
 
-model ItemPedido {
-  id         Int   @id @default(autoincrement())
-  idCoffee   Int
-  idPedido   Int
-  quantidade Int
-  preco      Float
-
-  coffee Coffee @relation(fields: [idCoffee], references: [id])
-  pedido Pedido @relation(fields: [idPedido], references: [id])
+model Delivery {
+  id                   Int       @id @default(autoincrement())
+  endereco             String
+  status               DeliveryStatus
+  dataPrevistaEntrega  DateTime
+  pedidoId             Int       @unique
+  pedido               Order    @relation(fields: [pedidoId], references: [id])
 }
 
-model Cliente {
-  id       Int      @id @default(autoincrement())
-  nome     String
-  email    String   @unique
-  cpf      String   @unique
-  telefone String
-  pedidos  Pedido[]
-}
-
-model Entrega {
-  id           Int           @id @default(autoincrement())
-  endereco     String
-  status       StatusEntrega @default(PENDENTE)
-  dataPrevista DateTime
-  pedidoId     Int           @unique
-
-  pedido Pedido @relation(fields: [pedidoId], references: [id])
-}
-
-enum StatusEntrega {
+enum DeliveryStatus {
   PENDENTE
   EM_TRANSITO
   ENTREGUE

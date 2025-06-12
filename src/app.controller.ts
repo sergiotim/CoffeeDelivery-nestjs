@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { AppService, Coffee } from './app.service';
+import { AppService } from './app.service';
 
 @Controller()
 export class AppController {
@@ -8,6 +8,12 @@ export class AppController {
   @Get('hello')
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  @Get('seed')
+  seed(){
+    this.appService.semearBd()
+    return 'BD Semeado'
   }
 
 

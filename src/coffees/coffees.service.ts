@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Coffee } from 'src/app.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateCoffeeDto } from './dto/create-coffee.dto';
+import { Coffee } from 'generated/prisma';
+import { time } from 'console';
 
 @Injectable()
 export class CoffeesService {
 
-    constructor(private prisma:PrismaService){}
+    constructor(private prisma: PrismaService) { }
 
     private convertDate(date: string): Date {
         const [d, m, y] = date.split('/').map(Number);
@@ -13,87 +15,114 @@ export class CoffeesService {
         return new Date(y, m - 1, d);
     }
 
-    private coffees: Coffee[] = [
-        {
-            nome: 'Espresso',
-            tipo: 'Quente',
-            quantidade: 10,
-            preco: 5.0,
-            id: '1',
-            descricao: 'Café forte e encorpado',
-            tags: ['forte', 'quente'],
-            date: new Date(2025, 4, 1), // 01/05/2025 (mês é 0-based: 4 = maio)
-        },
-        {
-            nome: 'Latte',
-            tipo: 'Quente',
-            quantidade: 15,
-            preco: 6.5,
-            id: '2',
-            descricao: 'Café com leite cremoso',
-            tags: ['cremoso', 'quente'],
-            date: new Date(2025, 4, 10), // 10/05/2025
-        },
-        {
-            nome: 'Iced Coffee',
-            tipo: 'Gelado',
-            quantidade: 8,
-            preco: 4.5,
-            id: '3',
-            descricao: 'Café gelado refrescante',
-            tags: ['gelado', 'refrescante'],
-            date: new Date(2025, 4, 20), // 20/05/2025
-        },
-    ];
-
-    findAll(): Coffee[] {
-        return this.coffees;
+    createCoffee(createCoffeeDto: CreateCoffeeDto): Promise<Coffee> {
+        return this.prisma.coffee.create({
+            data: createCoffeeDto
+        })
     }
 
-    findCoffee(id: string): Coffee {
-        const existsCoffee: Coffee | undefined = this.coffees.find(
-            (coffee) => coffee.id === id,
-        );
+    findAll() {
+        return this.prisma.coffee.findMany({
+            select: {
+                id: true,
+                nome: true,
+                tags: true
 
-        if (!existsCoffee) {
-            throw new NotFoundException(`Café com ID ${id} não encontrado`);
-        }
-
-        return existsCoffee;
-    }
-
-    createCoffee(coffee: Coffee): { message: string; cafe: Coffee } {
-        if (!coffee.id || !coffee.tipo || !coffee.nome) {
-            throw new BadRequestException(`ID, NOME e TIPO são obrigatórios`);
-        }
-        coffee.date = new Date();
-
-        this.coffees.push(coffee);
-        return {
-            message: 'Café criado com sucesso',
-            cafe: coffee,
-        };
-    }
-
-    findCoffeeByDate(start: string, end: string): Coffee[] {
-        const startDate: Date | undefined = start ? this.convertDate(start) : undefined;
-        const endDate: Date | undefined = end ? this.convertDate(end) : undefined;
-
-        return this.coffees.filter((coffee) => {
-            if (startDate && endDate) {
-                return coffee.date >= startDate && coffee.date <= endDate;
             }
-
-            if (startDate) {
-                return coffee.date >= startDate;
-            }
-
-            if (endDate) {
-                return coffee.date <= endDate;
-            }
-
-            return false;
         });
     }
+
+    findOrdersByCoffeeId(coffeeId: number) {
+        return this.prisma.itemOrder.findMany({
+            where: { cafeId: coffeeId },
+            select: {
+                quantidade: true,
+                precoUnitario: true,
+                cafe: {
+                    select: {
+                        id: true,
+                        nome: true,
+                        tags: true
+                    }
+                }
+
+            }
+        })
+    }
+
+
+    async findTop3CoffeesBySales(filter: { name?: string, type?: string }) {
+        return await this.prisma.itemOrder.groupBy({
+            by: ['cafeId'],
+            _sum: {
+                quantidade: true
+            },
+            where:{
+                cafe:{
+                    nome: filter.name,
+                    tipo: filter.type
+                }
+            },
+            orderBy:{
+                _sum:{
+                    quantidade:'desc'
+                }
+            },
+            
+            take:3,
+            
+        })
+        
+    }
+
+
+    async deleteCoffee(coffeeId:number){
+
+        await this.prisma.itemOrder.deleteMany({
+            where:{
+                cafeId:coffeeId
+            }
+        })
+
+        return this.prisma.coffee.delete({
+            where:{
+                id:coffeeId
+            }
+        })
+    }
+
+    // findCoffee(id: string): Coffee {
+    //     const existsCoffee: Coffee | undefined = this.coffees.find(
+    //         (coffee) => coffee.id === id,
+    //     );
+
+    //     if (!existsCoffee) {
+    //         throw new NotFoundException(`Café com ID ${id} não encontrado`);
+    //     }
+
+    //     return existsCoffee;
+    // }
+
+
+    // findCoffeeByDate(start: string, end: string): Coffee[] {
+    //     const startDate: Date | undefined = start ? this.convertDate(start) : undefined;
+    //     const endDate: Date | undefined = end ? this.convertDate(end) : undefined;
+
+    //     return this.coffees.filter((coffee) => {
+    //         if (startDate && endDate) {
+    //             return coffee.date >= startDate && coffee.date <= endDate;
+    //         }
+
+    //         if (startDate) {
+    //             return coffee.date >= startDate;
+    //         }
+
+    //         if (endDate) {
+    //             return coffee.date <= endDate;
+    //         }
+
+    //         return false;
+    //     });
+    // }
 
 }
